@@ -23,6 +23,20 @@ class ContactsController {
                 email: 'maria@example.com',
                 telefono: '098-765-4321',
                 fechaCreacion: new Date().toISOString()
+            },
+            {
+                id: '3',
+                nombre: 'Carlos López',
+                email: 'carlos@example.com',
+                telefono: '555-555-5555',
+                fechaCreacion: new Date().toISOString()
+            },
+            {
+                id: '4',
+                nombre: 'Ana Martínez',
+                email: 'ana@example.com',
+                telefono: '444-444-4444',
+                fechaCreacion: new Date().toISOString()
             }
         ];
     }
