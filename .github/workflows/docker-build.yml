@@ -53,6 +53,16 @@ jobs:
         registry: ${{ env.REGISTRY }}
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Debug Docker Hub secrets
+      run: |
+        echo "Usuario: ${{ secrets.DOCKERHUB_USERNAME }}"
+        if [ -z "${{ secrets.DOCKERHUB_TOKEN }}" ]; then
+          echo "❌ Token vacío"
+          exit 1
+        else
+          echo "✅ Token configurado"
+        fi
     
     # 🔑 Login en Docker Hub
     - name: Log in to Docker Hub
