@@ -20,7 +20,8 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  # Convertir nombre del repositorio a minúsculas
+  IMAGE_NAME: ${{ github.repository_owner }}/api-mycontacts
 
 jobs:
   build-and-push:
@@ -37,6 +38,11 @@ jobs:
     steps:
     - name: Checkout código
       uses: actions/checkout@v4
+    
+    # Normalizar el nombre del repositorio a minúsculas
+    - name: Set up image name
+      run: |
+        echo "IMAGE_NAME_LOWER=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
     
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v3
@@ -104,3 +110,38 @@ jobs:
       uses: github/codeql-action/upload-sarif@v3
       with:
         sarif_file: 'trivy-results.sarif'
+    
+    - name: Show scan results
+      if: always()
+      run: |
+        if [ -f trivy-results.sarif ]; then
+          echo "🔍 Resultados del escaneo de seguridad:"
+          cat trivy-results.sarif | jq '.runs[0].results | length' 2>/dev/null || echo "Archivo generado correctamente"
+        fi
+  
+  notify-completion:
+    name: Notify Completion
+    runs-on: ubuntu-latest
+    needs: [build-and-push, security-scan, integration-test]
+    if: always()
+    
+    steps:
+    - name: Notification
+      run: |
+        if [[ "${{ needs.build-and-push.result }}" == "success" && 
+              "${{ needs.security-scan.result }}" == "success" && 
+              "${{ needs.integration-test.result }}" == "success" ]]; then
+          echo "🎉 ¡Pipeline de Docker completado exitosamente!"
+          echo "✅ Imagen construida y enviada"
+          echo "✅ Escaneo de seguridad completado"
+          echo "✅ Tests de integración pasaron"
+          echo ""
+          echo "📦 Imagen disponible en:"
+          echo "ghcr.io/$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]'):latest"
+        else
+          echo "❌ Pipeline de Docker falló"
+          echo "Build: ${{ needs.build-and-push.result }}"
+          echo "Security: ${{ needs.security-scan.result }}"
+          echo "Integration: ${{ needs.integration-test.result }}"
+          exit 1
+        fi
