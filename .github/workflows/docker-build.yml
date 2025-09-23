@@ -87,7 +87,7 @@ jobs:
     - name: Verify image
       run: |
         docker run --rm -d -p 3000:3000 --name test-container \
-          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}
         sleep 10
         curl -f http://localhost:3000/health || exit 1
         docker stop test-container
