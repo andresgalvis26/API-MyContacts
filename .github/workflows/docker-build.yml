@@ -31,10 +31,6 @@ jobs:
       contents: read
       packages: write
     
-    strategy:
-      matrix:
-        platform: [linux/amd64, linux/arm64]
-    
     steps:
     - name: Checkout código
       uses: actions/checkout@v4
