@@ -118,30 +118,3 @@ jobs:
           echo "🔍 Resultados del escaneo de seguridad:"
           cat trivy-results.sarif | jq '.runs[0].results | length' 2>/dev/null || echo "Archivo generado correctamente"
         fi
-  
-  notify-completion:
-    name: Notify Completion
-    runs-on: ubuntu-latest
-    needs: [build-and-push, security-scan, integration-test]
-    if: always()
-    
-    steps:
-    - name: Notification
-      run: |
-        if [[ "${{ needs.build-and-push.result }}" == "success" && 
-              "${{ needs.security-scan.result }}" == "success" && 
-              "${{ needs.integration-test.result }}" == "success" ]]; then
-          echo "🎉 ¡Pipeline de Docker completado exitosamente!"
-          echo "✅ Imagen construida y enviada"
-          echo "✅ Escaneo de seguridad completado"
-          echo "✅ Tests de integración pasaron"
-          echo ""
-          echo "📦 Imagen disponible en:"
-          echo "ghcr.io/$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]'):latest"
-        else
-          echo "❌ Pipeline de Docker falló"
-          echo "Build: ${{ needs.build-and-push.result }}"
-          echo "Security: ${{ needs.security-scan.result }}"
-          echo "Integration: ${{ needs.integration-test.result }}"
-          exit 1
-        fi
