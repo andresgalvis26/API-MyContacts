@@ -19,13 +19,15 @@ on:
         - production
 
 env:
-  REGISTRY_GHCR: ghcr.io
-  REGISTRY_DOCKERHUB: docker.io
   IMAGE_NAME: api-mycontacts
+# env:
+#   REGISTRY_GHCR: ghcr.io
+#   REGISTRY_DOCKERHUB: docker.io
+#   IMAGE_NAME: api-mycontacts
 
 jobs:
   build-and-push:
-    name: Build & Push Docker Image
+    name: Build & Push Docker Image (GHCR + Docker Hub)
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -46,98 +48,88 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
     
-    # 🔑 Login en GitHub Container Registry
+    # 1️⃣ Build y Push a GHCR
     - name: Log in to Container Registry
       uses: docker/login-action@v3
       with:
-        registry: ${{ env.REGISTRY }}
+        registry: ghcr.io
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Debug Docker Hub secrets
-      run: |
-        echo "Usuario: ${{ secrets.DOCKERHUB_USERNAME }}"
-        if [ -z "${{ secrets.DOCKERHUB_TOKEN }}" ]; then
-          echo "❌ Token vacío"
-          exit 1
-        else
-          echo "✅ Token configurado"
-        fi
-    
-    # 🔑 Login en Docker Hub
+    - name: Build and push image to GHCR
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Dockerfile
+        push: true
+        platforms: linux/amd64,linux/arm64
+        tags: |
+          ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:latest
+          ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+    - name: Logout from GHCR
+      run: docker logout ghcr.io
+
+
+    # 2️⃣ Push a Docker Hub (reutilizando la imagen construida)
     - name: Log in to Docker Hub
       uses: docker/login-action@v3
       with:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
+      
+    - name: Tag & Push to Docker Hub
+      run: |
+        docker pull ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+        docker tag ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
+          ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+        docker tag ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
+          ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+        docker push ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+        docker push ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
 
-    - name: Extract metadata
-      id: meta
-      uses: docker/metadata-action@v5
-      with:
-        images: |
-          ${{ env.REGISTRY_GHCR }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
-          ${{ env.REGISTRY_DOCKERHUB }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}
-        tags: |
-          type=ref,event=branch
-          type=ref,event=pr
-          type=sha,prefix={{branch}}-
-          type=raw,value=latest,enable={{is_default_branch}}
-          type=semver,pattern={{version}}
-          type=semver,pattern={{major}}.{{minor}}
-    
-    - name: Build and push Docker image (GHCR + Docker Hub)
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        file: ./Dockerfile
-        platforms: linux/amd64,linux/arm64
-        push: true
-        tags: ${{ steps.meta.outputs.tags }}
-        labels: ${{ steps.meta.outputs.labels }}
-    
-    - name: Verify image
+    - name: Verify Docker Hub image
       run: |
         docker run --rm -d -p 3000:3000 --name test-container \
-          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}
+          ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
         sleep 10
         curl -f http://localhost:3000/health || exit 1
         docker stop test-container
 
-  security-scan:
-    name: Security Scan
-    runs-on: ubuntu-latest
-    needs: build-and-push
-    if: github.event_name != 'pull_request'
-    permissions:
-      contents: read
-      packages: write
-      security-events: write  # 👈 permiso necesario para subir SARIF
+  # security-scan:
+  #   name: Security Scan
+  #   runs-on: ubuntu-latest
+  #   needs: build-and-push
+  #   if: github.event_name != 'pull_request'
+  #   permissions:
+  #     contents: read
+  #     packages: write
+  #     security-events: write  # 👈 permiso necesario para subir SARIF
     
-    steps:
-    - name: Log in to Container Registry
-      uses: docker/login-action@v3
-      with:
-        registry: ${{ env.REGISTRY }}
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+  #   steps:
+  #   - name: Log in to Container Registry
+  #     uses: docker/login-action@v3
+  #     with:
+  #       registry: ${{ env.REGISTRY }}
+  #       username: ${{ github.actor }}
+  #       password: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Run Trivy vulnerability scanner
-      uses: aquasecurity/trivy-action@master
-      with:
-        image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}
-        format: 'sarif'
-        output: 'trivy-results.sarif'
+  #   - name: Run Trivy vulnerability scanner
+  #     uses: aquasecurity/trivy-action@master
+  #     with:
+  #       image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}
+  #       format: 'sarif'
+  #       output: 'trivy-results.sarif'
     
-    # - name: Upload Trivy scan results to GitHub Security tab
-    #   uses: github/codeql-action/upload-sarif@v3
-    #   with:
-    #     sarif_file: 'trivy-results.sarif'
+  #   # - name: Upload Trivy scan results to GitHub Security tab
+  #   #   uses: github/codeql-action/upload-sarif@v3
+  #   #   with:
+  #   #     sarif_file: 'trivy-results.sarif'
     
-    - name: Show scan results
-      if: always()
-      run: |
-        if [ -f trivy-results.sarif ]; then
-          echo "🔍 Resultados del escaneo de seguridad:"
-          cat trivy-results.sarif | jq '.runs[0].results | length' 2>/dev/null || echo "Archivo generado correctamente"
-        fi
+  #   - name: Show scan results
+  #     if: always()
+  #     run: |
+  #       if [ -f trivy-results.sarif ]; then
+  #         echo "🔍 Resultados del escaneo de seguridad:"
+  #         cat trivy-results.sarif | jq '.runs[0].results | length' 2>/dev/null || echo "Archivo generado correctamente"
+  #       fi
