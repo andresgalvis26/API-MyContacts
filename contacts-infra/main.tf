@@ -26,7 +26,15 @@ resource "azurerm_service_plan" "app_plan" {
   sku_name            = "B1"
 }
 
-# 3. Web App
+# 3. Application Insights 
+resource "azurerm_application_insights" "appinsights" {
+  name                = "appi-mycontacts"                  # Nombre único
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+  application_type    = "web"                               # Puede ser "web", "other", etc.
+}
+
+# 4. Web App
 resource "azurerm_linux_web_app" "webapp" {
   name                = "mycontacts-api-app"
   location            = azurerm_resource_group.rg.location
@@ -44,5 +52,7 @@ resource "azurerm_linux_web_app" "webapp" {
 
   app_settings = {
     "WEBSITES_PORT" = "3000"
+    "APPLICATIONINSIGHTS_CONNECTION_STRING" = azurerm_application_insights.appinsights.connection_string
   }
 }
+
