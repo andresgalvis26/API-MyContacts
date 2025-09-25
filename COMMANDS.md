@@ -30,3 +30,14 @@ az webapp deployment source config-zip \
 ``` 
 git config --global core.autocrlf true
 ``` 
+
+
+---
+
+## Comando para instalar OpenTelemetry en NodeJS
+```
+npm install @opentelemetry/api \
+            @opentelemetry/sdk-node \
+            @opentelemetry/auto-instrumentations-node \
+            @opentelemetry/exporter-azure-monitor
+``` 
