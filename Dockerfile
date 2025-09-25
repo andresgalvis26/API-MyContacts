@@ -20,6 +20,7 @@ RUN addgroup -g 1001 -S nodejs && \
 
 # Copiar código fuente
 COPY --chown=api-user:nodejs ./src ./src
+COPY --chown=api-user:nodejs ./tracing.js ./
 
 # Exponer el puerto
 EXPOSE 3000
@@ -39,4 +40,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     req.end();"
 
 # Comando por defecto
-CMD ["node", "src/app.js"]
+CMD ["npm", "start"]
