@@ -20,6 +20,7 @@ RUN addgroup -g 1001 -S nodejs && \
 
 # Copiar código fuente
 COPY --chown=api-user:nodejs ./src ./src
+COPY --chown=api-user:nodejs ./tracing.js ./
 
 # Exponer el puerto
 EXPOSE 3000
