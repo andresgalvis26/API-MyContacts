@@ -40,18 +40,16 @@ resource "azurerm_linux_web_app" "webapp" {
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
   service_plan_id     = azurerm_service_plan.app_plan.id
-  
-  site_config {
-    container_registry_use_managed_identity = false
 
+  site_config {
     application_stack {
-        docker_image     = "anfelipegalvis/api-mycontacts"
-        docker_image_tag = "latest"
-        }
+      docker_image   = "anfelipegalvis/api-mycontacts"
+      docker_image_tag    = "latest"
+    }
   }
 
   app_settings = {
-    "WEBSITES_PORT" = "3000"
+    "WEBSITES_PORT"                        = "3000"
     "APPLICATIONINSIGHTS_CONNECTION_STRING" = azurerm_application_insights.appinsights.connection_string
   }
 }

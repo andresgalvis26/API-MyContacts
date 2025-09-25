@@ -40,4 +40,5 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     req.end();"
 
 # Comando por defecto
-CMD ["npm", "start"]
+# CMD ["npm", "start"]
+CMD ["node", "-r", "./tracing.js", "src/app.js"]
