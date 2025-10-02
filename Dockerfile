@@ -8,6 +8,11 @@ LABEL description="API de Contactos para DevOps"
 # Crear directorio de la aplicación
 WORKDIR /usr/src/app
 
+# Variables de entorno para producción
+ENV APPLICATIONINSIGHTS_CONNECTION_STRING=InstrumentationKey=71571f9a-1237-4c12-b1ad-7eec37799378;IngestionEndpoint=https://eastus-8.in.applicationinsights.azure.com/;LiveEndpoint=https://eastus.livediagnostics.monitor.azure.com/;ApplicationId=8e76c077-7c6a-4dff-97fc-96b8dcb622fc
+ENV SUPABASE_URL=https://dahncwtliklmzojpxezh.supabase.co
+ENV SUPABASE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRhaG5jd3RsaWtsbXpvanB4ZXpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkzMjk2OTMsImV4cCI6MjA3NDkwNTY5M30.dqWmj7GJUCuCA0k38T3yfpWDXz_IKfqhnVgvDC0ZRso
+
 # Copiar archivos de dependencias
 COPY package*.json ./
 
