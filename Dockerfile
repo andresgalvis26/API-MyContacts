@@ -15,8 +15,8 @@ COPY package*.json ./
 RUN npm ci --only=production && npm cache clean --force
 
 # Crear usuario no-root para seguridad
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S api-user -u 1001
+RUN addgroup --system nodejs && \
+    adduser --system --ingroup nodejs api-user
 
 # Copiar código fuente
 COPY --chown=api-user:nodejs ./src ./src
