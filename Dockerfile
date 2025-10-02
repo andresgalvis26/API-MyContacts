@@ -1,5 +1,5 @@
 # Usar la imagen oficial de Node.js
-FROM node:22-alpine
+FROM node:22-bullseye-slim
 
 # Información del mantenedor
 LABEL maintainer="tu-email@example.com"
