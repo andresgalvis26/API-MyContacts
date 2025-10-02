@@ -58,10 +58,10 @@ jobs:
     - name: Verify image (Docker Hub)
       run: |
         docker run --rm -d -p 3000:3000 --name test-container \
-        -e SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
-        -e SUPABASE_KEY=${{ secrets.SUPABASE_KEY }} \
-        -e APPLICATIONINSIGHTS_CONNECTION_STRING=${{ secrets.APPLICATIONINSIGHTS_CONNECTION_STRING }} \
-        ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+          -e SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
+          -e SUPABASE_KEY=${{ secrets.SUPABASE_KEY }} \
+          -e APPLICATIONINSIGHTS_CONNECTION_STRING=${{ secrets.APPLICATIONINSIGHTS_CONNECTION_STRING }} \
+          ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
         
         sleep 10
         curl -f http://localhost:3000/health || exit 1
