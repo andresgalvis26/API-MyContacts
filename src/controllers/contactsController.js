@@ -2,6 +2,7 @@
 
 // Importar dependencias necesarias
 const { v4: uuidv4 } = require('uuid');
+const { supabase } = require('../supabaseClient');
 
 // Clase controlador para manejar operaciones de contactos
 // En un entorno real, estas operaciones interactuarían con una base de datos
@@ -9,61 +10,71 @@ const { v4: uuidv4 } = require('uuid');
 class ContactsController {
     constructor() {
         // Simular base de datos en memoria
-        this.contacts = [
-            {
-                id: '1',
-                nombre: 'Juan Pérez',
-                email: 'juan@example.com',
-                telefono: '123-456-7890',
-                fechaCreacion: new Date().toISOString()
-            },
-            {
-                id: '2',
-                nombre: 'María García',
-                email: 'maria@example.com',
-                telefono: '098-765-4321',
-                fechaCreacion: new Date().toISOString()
-            },
-            {
-                id: '3',
-                nombre: 'Carlos López',
-                email: 'carlos@example.com',
-                telefono: '555-555-5555',
-                fechaCreacion: new Date().toISOString()
-            },
-            {
-                id: '4',
-                nombre: 'Ana Martínez',
-                email: 'ana@example.com',
-                telefono: '444-444-4444',
-                fechaCreacion: new Date().toISOString()
-            }
-        ];
+        // this.contacts = [
+        //     {
+        //         id: '1',
+        //         nombre: 'Juan Pérez',
+        //         email: 'juan@example.com',
+        //         telefono: '123-456-7890',
+        //         fechaCreacion: new Date().toISOString()
+        //     },
+        //     {
+        //         id: '2',
+        //         nombre: 'María García',
+        //         email: 'maria@example.com',
+        //         telefono: '098-765-4321',
+        //         fechaCreacion: new Date().toISOString()
+        //     },
+        //     {
+        //         id: '3',
+        //         nombre: 'Carlos López',
+        //         email: 'carlos@example.com',
+        //         telefono: '555-555-5555',
+        //         fechaCreacion: new Date().toISOString()
+        //     },
+        //     {
+        //         id: '4',
+        //         nombre: 'Ana Martínez',
+        //         email: 'ana@example.com',
+        //         telefono: '444-444-4444',
+        //         fechaCreacion: new Date().toISOString()
+        //     }
+        // ];
     }
 
     // GET /api/contacts - Obtener todos los contactos
-    getAllContacts(req, res) {
+    async getAllContacts(req, res) {
         try {
+            const { data, error } = await supabase
+                .from('contacts')
+                .select('*');
+
+            if (error) throw error;
+
             res.status(200).json({
                 success: true,
-                data: this.contacts,
-                count: this.contacts.length
+                data,
+                count: data.length
             });
         } catch (error) {
             res.status(500).json({
                 success: false,
-                message: 'Error interno del servidor'
+                message: error.message || 'Error interno del servidor'
             });
         }
     }
 
     // GET /api/contacts/:id - Obtener un contacto por ID
-    getContactById(req, res) {
+    async getContactById(req, res) {
         try {
             const { id } = req.params;
-            const contact = this.contacts.find(c => c.id === id);
+            const { data, error } = await supabase
+                .from('contacts')
+                .select('*')
+                .eq('id', id)
+                .single();
 
-            if (!contact) {
+            if (error) {
                 return res.status(404).json({
                     success: false,
                     message: 'Contacto no encontrado'
@@ -72,18 +83,18 @@ class ContactsController {
 
             res.status(200).json({
                 success: true,
-                data: contact
+                data
             });
         } catch (error) {
             res.status(500).json({
                 success: false,
-                message: 'Error interno del servidor'
+                message: error.message || 'Error interno del servidor'
             });
         }
     }
 
     // POST /api/contacts - Crear un nuevo contacto
-    createContact(req, res) {
+    async createContact(req, res) {
         try {
             const { nombre, email, telefono } = req.body;
 
@@ -96,8 +107,20 @@ class ContactsController {
             }
 
             // Verificar si el email ya existe
-            const existingContact = this.contacts.find(c => c.email === email);
-            if (existingContact) {
+            // const existingContact = this.contacts.find(c => c.email === email);
+            // if (existingContact) {
+            //     return res.status(409).json({
+            //         success: false,
+            //         message: 'Ya existe un contacto con ese email'
+            //     });
+            // }
+            const existingContact = await supabase
+                .from('contacts')
+                .select('*')
+                .eq('email', email)
+                .single();
+
+            if (existingContact.data) {
                 return res.status(409).json({
                     success: false,
                     message: 'Ya existe un contacto con ese email'
@@ -105,68 +128,60 @@ class ContactsController {
             }
 
             const newContact = {
-                id: uuidv4(),
-                nombre,
+                name: nombre,
                 email,
-                telefono: telefono || '',
-                fechaCreacion: new Date().toISOString()
+                phone: telefono || ''
             };
 
-            this.contacts.push(newContact);
+            const { data, error } = await supabase
+                .from('contacts')
+                .insert([newContact], { returning: 'representation' });
 
+            if (error) throw error;
+
+            // Agregar el nuevo contacto a la lista
             res.status(201).json({
                 success: true,
-                data: newContact,
-                message: 'Contacto creado exitosamente'
+                message: 'Contacto creado exitosamente',
+                data
             });
         } catch (error) {
             res.status(500).json({
                 success: false,
-                message: 'Error interno del servidor'
+                message: error.message || 'Error interno del servidor'
             });
         }
     }
 
     // PUT /api/contacts/:id - Actualizar un contacto
-    updateContact(req, res) {
+    async updateContact(req, res) {
         try {
-            const { id } = req.params;
+            const id = parseInt(req.params.id, 10); // Asegura que sea número
             const { nombre, email, telefono } = req.body;
 
-            const contactIndex = this.contacts.findIndex(c => c.id === id);
+            const updates = {
+            ...(nombre && { name: nombre }),
+            ...(email && { email }),
+            ...(telefono !== undefined && { phone: telefono })
+            };
 
-            if (contactIndex === -1) {
+            const { data, error } = await supabase
+                .from('contacts')
+                .update(updates)
+                .eq('id', id)
+                .select();
+
+            if (error || !data.length) {
                 return res.status(404).json({
                     success: false,
-                    message: 'Contacto no encontrado'
+                    message: 'Contacto no encontrado',
+                    error: error ? error.message : 'No se pudo actualizar'
                 });
             }
 
-            // Verificar si el email ya existe en otro contacto
-            if (email) {
-                const existingContact = this.contacts.find(c => c.email === email && c.id !== id);
-                if (existingContact) {
-                    return res.status(409).json({
-                        success: false,
-                        message: 'Ya existe otro contacto con ese email'
-                    });
-                }
-            }
-
-            // Actualizar solo los campos proporcionados
-            const updatedContact = {
-                ...this.contacts[contactIndex],
-                nombre: nombre || this.contacts[contactIndex].nombre,
-                email: email || this.contacts[contactIndex].email,
-                telefono: telefono !== undefined ? telefono : this.contacts[contactIndex].telefono,
-                fechaModificacion: new Date().toISOString()
-            };
-
-            this.contacts[contactIndex] = updatedContact;
-
             res.status(200).json({
                 success: true,
-                data: updatedContact,
+                // data: data[0],
                 message: 'Contacto actualizado exitosamente'
             });
         } catch (error) {
@@ -178,24 +193,20 @@ class ContactsController {
     }
 
     // DELETE /api/contacts/:id - Eliminar un contacto
-    deleteContact(req, res) {
+    async deleteContact(req, res) {
         try {
             const { id } = req.params;
-            const contactIndex = this.contacts.findIndex(c => c.id === id);
 
-            if (contactIndex === -1) {
-                return res.status(404).json({
-                    success: false,
-                    message: 'Contacto no encontrado'
-                });
-            }
-
-            const deletedContact = this.contacts[contactIndex];
-            this.contacts.splice(contactIndex, 1);
+            const { error } = await supabase
+                .from('contacts')
+                .delete()
+                .eq('id', id);
+                
+                
+            if (error) throw error;
 
             res.status(200).json({
                 success: true,
-                data: deletedContact,
                 message: 'Contacto eliminado exitosamente'
             });
         } catch (error) {
@@ -205,16 +216,15 @@ class ContactsController {
             });
         }
     }
-
     // Método para resetear datos (útil para testing)
-    resetContacts() {
-        this.contacts = [];
-    }
+    // resetContacts() {
+    //     this.contacts = [];
+    // }
 
     // Método para obtener la cantidad de contactos
-    getContactsCount() {
-        return this.contacts.length;
-    }
+    // getContactsCount() {
+    //     return this.contacts.length;
+    // }
 }
 
 module.exports = ContactsController;
