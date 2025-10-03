@@ -1,8 +1,8 @@
 // src/controllers/contactsController.js
 
 // Importar dependencias necesarias
-const { v4: uuidv4 } = require('uuid');
-const { supabase } = require('../supabaseClient');
+// const { v4: uuidv4 } = require('uuid');
+const supabase = require('../supabaseClient');
 
 // Clase controlador para manejar operaciones de contactos
 // En un entorno real, estas operaciones interactuarían con una base de datos
@@ -96,10 +96,10 @@ class ContactsController {
     // POST /api/contacts - Crear un nuevo contacto
     async createContact(req, res) {
         try {
-            const { nombre, email, telefono } = req.body;
+            const { name, email, phone } = req.body;
 
             // Validaciones básicas
-            if (!nombre || !email) {
+            if (!name || !email) {
                 return res.status(400).json({
                     success: false,
                     message: 'Nombre y email son requeridos'
@@ -107,13 +107,6 @@ class ContactsController {
             }
 
             // Verificar si el email ya existe
-            // const existingContact = this.contacts.find(c => c.email === email);
-            // if (existingContact) {
-            //     return res.status(409).json({
-            //         success: false,
-            //         message: 'Ya existe un contacto con ese email'
-            //     });
-            // }
             const existingContact = await supabase
                 .from('contacts')
                 .select('*')
@@ -128,14 +121,16 @@ class ContactsController {
             }
 
             const newContact = {
-                name: nombre,
+                name,
                 email,
-                phone: telefono || ''
+                phone
             };
 
+            // Insertar y especificar que queremos los datos de retorno
             const { data, error } = await supabase
                 .from('contacts')
-                .insert([newContact], { returning: 'representation' });
+                .insert([newContact])
+                .select();
 
             if (error) throw error;
 
@@ -143,9 +138,10 @@ class ContactsController {
             res.status(201).json({
                 success: true,
                 message: 'Contacto creado exitosamente',
-                data
+                data: data[0]
             });
         } catch (error) {
+            console.error('Error creando contacto:', error);
             res.status(500).json({
                 success: false,
                 message: error.message || 'Error interno del servidor'
@@ -157,12 +153,12 @@ class ContactsController {
     async updateContact(req, res) {
         try {
             const id = parseInt(req.params.id, 10); // Asegura que sea número
-            const { nombre, email, telefono } = req.body;
+            const { name, email, phone } = req.body;
 
             const updates = {
-            ...(nombre && { name: nombre }),
+            ...(name && { name }),
             ...(email && { email }),
-            ...(telefono !== undefined && { phone: telefono })
+            ...(phone !== undefined && { phone })
             };
 
             const { data, error } = await supabase
@@ -181,8 +177,8 @@ class ContactsController {
 
             res.status(200).json({
                 success: true,
-                // data: data[0],
-                message: 'Contacto actualizado exitosamente'
+                message: 'Contacto actualizado exitosamente',
+                data: data[0],
             });
         } catch (error) {
             res.status(500).json({
