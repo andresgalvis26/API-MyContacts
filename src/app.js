@@ -1,7 +1,6 @@
 const express = require('express');
 const cors = require('cors');
 const ContactsController = require('./controllers/contactsController');
-const { supabase } = require('./supabaseClient');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
