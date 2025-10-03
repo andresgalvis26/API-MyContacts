@@ -3,6 +3,7 @@
 // Importar dependencias necesarias
 // const { v4: uuidv4 } = require('uuid');
 const supabase = require('../supabaseClient');
+const repo = require('../repositories/contactsRepository');
 
 // Clase controlador para manejar operaciones de contactos
 // En un entorno real, estas operaciones interactuarían con una base de datos
@@ -57,6 +58,7 @@ class ContactsController {
                 count: data.length
             });
         } catch (error) {
+            console.error('Error obteniendo contactos:', error);
             res.status(500).json({
                 success: false,
                 message: error.message || 'Error interno del servidor'
@@ -106,12 +108,7 @@ class ContactsController {
                 });
             }
 
-            // Verificar si el email ya existe
-            const existingContact = await supabase
-                .from('contacts')
-                .select('*')
-                .eq('email', email)
-                .single();
+            const existingContact = await repo.findContactByEmail(email);
 
             if (existingContact.data) {
                 return res.status(409).json({
@@ -161,13 +158,9 @@ class ContactsController {
             ...(phone !== undefined && { phone })
             };
 
-            const { data, error } = await supabase
-                .from('contacts')
-                .update(updates)
-                .eq('id', id)
-                .select();
+            const { data, error } = await repo.updateContact(id, updates);
 
-            if (error || !data.length) {
+            if (error || !data || data.length === 0) {
                 return res.status(404).json({
                     success: false,
                     message: 'Contacto no encontrado',
@@ -181,6 +174,7 @@ class ContactsController {
                 data: data[0],
             });
         } catch (error) {
+            console.error('Error actualizando contacto:', error);
             res.status(500).json({
                 success: false,
                 message: 'Error interno del servidor'
