@@ -1,13 +1,10 @@
 // src/controllers/contactsController.js
 
 // Importar dependencias necesarias
-// const { v4: uuidv4 } = require('uuid');
 const supabase = require('../supabaseClient');
 const repo = require('../repositories/contactsRepository');
 
 // Clase controlador para manejar operaciones de contactos
-// En un entorno real, estas operaciones interactuarían con una base de datos
-// Aquí se simula con un array en memoria
 class ContactsController {
     constructor() {
         // Simular base de datos en memoria
@@ -206,15 +203,6 @@ class ContactsController {
             });
         }
     }
-    // Método para resetear datos (útil para testing)
-    // resetContacts() {
-    //     this.contacts = [];
-    // }
-
-    // Método para obtener la cantidad de contactos
-    // getContactsCount() {
-    //     return this.contacts.length;
-    // }
 }
 
 module.exports = ContactsController;
