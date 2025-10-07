@@ -1,9 +1,8 @@
 pipeline {
-    agent {
-        docker {
-            image 'node:22-alpine'
-            // args '-p 3000:3000'
-        }
+    agent any
+
+    tools {
+        nodejs "22.20.0"
     }
 
     stages {
@@ -22,10 +21,5 @@ pipeline {
                 sh 'npm test'
             }
         }
-        // stage('Build') {
-        //     steps {
-        //         sh 'npm run build'
-        //     }
-        // }
     }
 }
